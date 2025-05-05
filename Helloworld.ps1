@@ -1,10 +1,10 @@
 ﻿#silently open:
 # DllImport the ShowWindow function from user32.dll
-$i = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);'
-add-type -name win -member $i -namespace native
+#$i = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);'
+#add-type -name win -member $i -namespace native
 
 # Hide the current PowerShell window
-[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0)
+#[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0)
 
 
 #########################################################
