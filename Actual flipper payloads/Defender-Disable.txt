@@ -65,3 +65,4 @@ STRING Set-MpPreference -DisableScriptScanning \$true;
 ENTER
 STRING exit
 ENTER
+
