@@ -18,7 +18,10 @@ $action = New-ScheduledTaskAction -Execute $exePath
 
 # Triggers: at logon AND on session unlock
 $triggerLogon = New-ScheduledTaskTrigger -AtLogOn
-$triggerUnlock = New-ScheduledTaskTrigger -OnSessionUnlock
+# Add a secondary scheduled task that runs on session unlock
+$exeEscaped = $exePath -replace '\\', '\\\\'
+schtasks /Create /F /TN "WinUmanUnlock" /TR "$exeEscaped" /SC ONUNLOCK /RL HIGHEST /RU "$env:USERNAME"
+
 
 # Settings: Restart up to 5 times if it crashes, 1 min interval, allow start on battery, don't stop on battery
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
